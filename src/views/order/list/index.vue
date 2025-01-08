@@ -32,8 +32,14 @@
 
         </el-table-column>
 
-        <el-table-column prop="state" label="状态" />
-        <el-table-column prop="creatorId" label="创建人" />
+        <el-table-column prop="state" label="状态">
+          <template v-slot="{row}">
+            <el-tag v-if="row.state===1" type="success">进行中</el-tag>
+            <el-tag v-else-if="row.state===2">已结束</el-tag>
+            <el-tag v-else type="warning">手动结束</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="creatorName" label="创建人" />
         <el-table-column prop="createTime" label="创建时间" />
         <el-table-column prop="updateTime" label="更新时间" />
         <el-table-column label="操作">
@@ -75,6 +81,7 @@ const load = async (pageNum,pageSize) =>{
   const res = await getOrderPage(title.value,pageNum,pageSize)
   tableData.value = res.data.records
   total.value =  res.data.total
+  console.log(tableData.value)
 }
 
 load()
