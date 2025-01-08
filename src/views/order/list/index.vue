@@ -42,7 +42,23 @@
         <el-table-column prop="creatorName" label="创建人" />
         <el-table-column prop="createTime" label="创建时间" />
         <el-table-column prop="updateTime" label="更新时间" />
-        <el-table-column label="操作">
+        <el-table-column label="操作" v-slot="{row}">
+          <el-dropdown>
+            <span class="el-dropdown-link">
+              更多操作
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item @click="checkOrder(row.orderId)">查看</el-dropdown-item>
+                <el-dropdown-item command="v"></el-dropdown-item>
+                <el-dropdown-item command="c">Action 3</el-dropdown-item>
+
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
 
         </el-table-column>
 
@@ -69,6 +85,7 @@
 import {Refresh, Search} from "@element-plus/icons-vue";
 import {getOrderPage} from "@/api/business";
 import {ref} from "vue";
+import router from '@/router'
 
 const title = ref('')
 
@@ -81,7 +98,10 @@ const load = async (pageNum,pageSize) =>{
   const res = await getOrderPage(title.value,pageNum,pageSize)
   tableData.value = res.data.records
   total.value =  res.data.total
-  console.log(tableData.value)
+}
+
+const checkOrder = (orderId) =>{
+  router.push({ name:"biz:detail",query:{orderId}})
 }
 
 load()
