@@ -50,13 +50,14 @@
         </el-form>
 
 
-
       </el-card>
 
       <el-card class="box-card">
         <template #header>
           <div class="card-header">
-            <span>表单信息</span>
+            <span>
+              {{active===1?"审核工单":"分配维修人员"}}
+            </span>
           </div>
         </template>
 
@@ -66,26 +67,21 @@
               {{tableData.complaint}}
             </el-form-item>
           </el-col>
-
         </el-row>
-
         <el-row>
           <el-col>
             <el-form-item label="图片：">
             </el-form-item>
           </el-col>
-
         </el-row>
-
         <template #footer>
-          <el-form v-permission="'biz:detail:audit'" :model="auditData">
+          <el-form v-permission="'biz:detail:audit'"  v-show="active===1" :model="auditData">
             <el-input
               v-model="auditData.remark"
               :rows="2"
               type="textarea"
               placeholder="请输入处理意见"
             />
-
             <div class="buttons">
               <el-button type="primary" @click="nextStep">同意</el-button>
 
@@ -94,10 +90,33 @@
           </el-form>
 
 
+          <el-form v-permission="'biz:detail:alloc'" v-show="active===2" :model="allocForm" style="display: flex;align-items: center;justify-content: center">
+            <el-select
+
+              v-model="allocForm.allocUserId"
+              placeholder="分配维修人员"
+              size="large"
+              style="width: 240px"
+            >
+              <el-option
+                v-for="item in usersData"
+                :key="item.id"
+                :label="item.nickName"
+                :value="item.id"
+              >
+
+              </el-option>
+            </el-select>
+            <el-button type="primary" @click="handleAlloc()" style="margin-left: 20px">分配</el-button>
+          </el-form>
+
+          <div v-permission="'biz:detail:acc-rej-order'" v-show="active===3" style="display: flex;justify-content: center;margin-top: 15px">
+            <el-button type="primary">接受</el-button>
+            <el-button type="info">转单</el-button>
+          </div>
         </template>
-
-
       </el-card>
+
 
 
       <el-card class="box-card">
@@ -134,13 +153,21 @@
 
 <script setup>
 
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import {useRoute} from 'vue-router'
 import { auditOrder, findByOrderId, getHistoryOrder } from '@/api/business'
 import useSystemStore from '@/stores/system'
+import { getUsersByRole } from '@/api/role'
 
 const active = ref(1)
 const tableData = ref({})
+const allocForm = ref({
+  allocUserId:null
+})
+const usersData = ref([])
+
+const perm = ref('serviceman')
+
 
 const auditData = ref({
   orderId:'',
@@ -154,14 +181,15 @@ const historyData = ref([])
 
 const systemStore = useSystemStore()
 
+//todo 步骤条控制
 const nextStep = async () => {
   auditData.value.orderId = tableData.value.orderId
   auditData.value.operatorName = systemStore.userInfo.userName
-  // console.log('auditData',auditData)
 
 
 
   const res = await auditOrder(auditData.value)
+
 
 
   // if (active.value++ > 2) {
@@ -177,16 +205,33 @@ const orderId = ref('')
 
 const route = useRoute()
 
+//根据工单id获取单个工单
 const getOneOrder = async () =>{
   orderId.value = route.query.orderId
+  //获取单个工单
   const { data } = await findByOrderId(orderId.value)
   tableData.value = data
+  active.value = data.state
 
+  //获取当前工单操作历史
   const res = await getHistoryOrder(orderId.value)
   historyData.value = res.data
-  console.log('@@@@',res.data)
 }
 
+//实时监听步骤条
+watch(active,async (value)=>{
+  if (value===2){
+    const { data } = await getUsersByRole(perm.value)
+    usersData.value = data
+  }
+})
+
+//todo 执行分配维修人员操作
+const handleAlloc = () =>{
+
+  console.log('分配！！',allocForm.value)
+
+}
 
 
 getOneOrder()

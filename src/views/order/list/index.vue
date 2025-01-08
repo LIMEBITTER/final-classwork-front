@@ -34,8 +34,8 @@
 
         <el-table-column prop="state" label="状态">
           <template v-slot="{row}">
-            <el-tag v-if="row.state===1" type="success">进行中</el-tag>
-            <el-tag v-else-if="row.state===2">已结束</el-tag>
+            <el-tag v-if="row.state===1 || row.state === 2" type="success">进行中</el-tag>
+            <el-tag v-else-if="row.state===3">已结束</el-tag>
             <el-tag v-else type="warning">手动结束</el-tag>
           </template>
         </el-table-column>
