@@ -50,10 +50,31 @@ export const auditOrder = (formData) =>{
     })
 }
 
+//获取当前订单的历史操作记录
 export const getHistoryOrder = (orderId) =>{
     return request({
         method:'GET',
         url:'/order/getHistoryOrder',
+        params:{
+            orderId
+        }
+    })
+}
+
+//管理员分配维修员或维修员转交工单
+export const allocServiceman = (userOrderForm) =>{
+    return request({
+        method:'POST',
+        url:'/order/allocServiceman',
+        data:userOrderForm
+    })
+}
+
+//查询当前工单被分配的User
+export const findAllocUser = (orderId) =>{
+    return request({
+        method:'GET',
+        url:'/order/findAllocUser',
         params:{
             orderId
         }

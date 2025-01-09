@@ -6,7 +6,7 @@
           <el-step title="提交工单" />
           <el-step title="物业审核"/>
           <el-step title="分配维修员"/>
-          <el-step title="维修上门" description="维修员:XXX上门服务"/>
+          <el-step title="维修上门" :description="currentNickName===''?'当前还未分配人员':'工单派发给：'+currentNickName"/>
           <el-step title="结束工单"/>
         </el-steps>
       </el-card>
@@ -75,42 +75,48 @@
           </el-col>
         </el-row>
         <template #footer>
-          <el-form v-permission="'biz:detail:audit'"  v-show="active===1" :model="auditData">
-            <el-input
-              v-model="auditData.remark"
-              :rows="2"
-              type="textarea"
-              placeholder="请输入处理意见"
-            />
-            <div class="buttons">
-              <el-button type="primary" @click="nextStep">同意</el-button>
+          <div v-show="active===1">
+            <el-form v-permission="'biz:detail:audit'" :model="auditData">
+              <el-input
+                v-model="auditData.remark"
+                :rows="2"
+                type="textarea"
+                placeholder="请输入处理意见"
+              />
+              <div class="buttons">
+                <el-button type="primary" @click="nextStep">同意</el-button>
 
-              <el-button type="info">拒绝</el-button>
-            </div>
-          </el-form>
+                <el-button type="info">拒绝</el-button>
+              </div>
+            </el-form>
+          </div>
 
 
-          <el-form v-permission="'biz:detail:alloc'" v-show="active===2" :model="allocForm" style="display: flex;align-items: center;justify-content: center">
-            <el-select
+          <div v-show="active===2">
+            <el-form v-permission="'biz:detail:alloc'"
+                     :model="allocForm"
+                     style="display: flex;align-items: center;justify-content: center">
+              <el-select
 
-              v-model="allocForm.allocUserId"
-              placeholder="分配维修人员"
-              size="large"
-              style="width: 240px"
-            >
-              <el-option
-                v-for="item in usersData"
-                :key="item.id"
-                :label="item.nickName"
-                :value="item.id"
+                v-model="allocForm.allocUserId"
+                placeholder="分配维修人员"
+                size="large"
+                style="width: 240px"
               >
+                <el-option
+                  v-for="item in usersData"
+                  :key="item.id"
+                  :label="item.nickName"
+                  :value="item.id"
+                >
+                </el-option>
+              </el-select>
+              <el-button type="primary" @click="handleAlloc()" style="margin-left: 20px">分配</el-button>
+            </el-form>
+          </div>
 
-              </el-option>
-            </el-select>
-            <el-button type="primary" @click="handleAlloc()" style="margin-left: 20px">分配</el-button>
-          </el-form>
 
-          <div v-permission="'biz:detail:acc-rej-order'" v-show="active===3" style="display: flex;justify-content: center;margin-top: 15px">
+          <div v-permission="'biz:detail:acc-rej-order'" v-show="active===3&&isShow===true" style="display: flex;justify-content: center;margin-top: 15px">
             <el-button type="primary">接受</el-button>
             <el-button type="info">转单</el-button>
           </div>
@@ -155,48 +161,44 @@
 
 import { ref, watch } from 'vue'
 import {useRoute} from 'vue-router'
-import { auditOrder, findByOrderId, getHistoryOrder } from '@/api/business'
+import { allocServiceman, auditOrder, findAllocUser, findByOrderId, getHistoryOrder } from '@/api/business'
 import useSystemStore from '@/stores/system'
 import { getUsersByRole } from '@/api/role'
+import { findUserById } from '@/api/user'
 
+
+const historyData = ref([])
+const systemStore = useSystemStore()
 const active = ref(1)
 const tableData = ref({})
 const allocForm = ref({
-  allocUserId:null
+  allocUserId:null,
+  orderId:'',
+  operatorName:'',
+  allocUserName:'',
 })
 const usersData = ref([])
-
 const perm = ref('serviceman')
-
-
+const currentNickName = ref('')
 const auditData = ref({
   orderId:'',
   operatorName:'',
   state:2,
   remark:''
-
 })
+const isShow = ref(false)
 
-const historyData = ref([])
-
-const systemStore = useSystemStore()
 
 //todo 步骤条控制
 const nextStep = async () => {
   auditData.value.orderId = tableData.value.orderId
   auditData.value.operatorName = systemStore.userInfo.userName
 
-
-
   const res = await auditOrder(auditData.value)
-
-
 
   // if (active.value++ > 2) {
   //   active.value = 0
   // }
-
-
 
 }
 
@@ -220,16 +222,40 @@ const getOneOrder = async () =>{
 
 //实时监听步骤条
 watch(active,async (value)=>{
+  console.log('当前active',value)
   if (value===2){
     const { data } = await getUsersByRole(perm.value)
     usersData.value = data
+    console.log(data)
+  }
+  if (value===3){
+    let loginUserId = systemStore.userInfo.id
+    console.log('维修员！！')
+    console.log(systemStore.userInfo.id)
+    const { data } = await findAllocUser(tableData.value.orderId)
+    if (data!=null){
+      const res = await findUserById(data.allocUserId)
+      currentNickName.value = res.data.nickName
+      if (loginUserId === res.data.id){
+        isShow.value = true
+      }
+
+    }
+
+
+
+
   }
 })
 
-//todo 执行分配维修人员操作
-const handleAlloc = () =>{
 
-  console.log('分配！！',allocForm.value)
+//todo 执行分配维修人员操作
+const handleAlloc = async () =>{
+  allocForm.value.orderId = tableData.value.orderId
+  allocForm.value.operatorName = systemStore.userInfo.userName
+  allocForm.value.allocUserName = usersData.value.find(user=>user.id === allocForm.value.allocUserId).nickName
+  await allocServiceman(allocForm.value)
+  window.location.reload()
 
 }
 
