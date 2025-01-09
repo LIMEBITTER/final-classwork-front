@@ -75,7 +75,7 @@
           </el-col>
         </el-row>
         <template #footer>
-          <div v-show="active===1">
+          <div v-if="active===1">
             <el-form v-permission="'biz:detail:audit'" :model="auditData">
               <el-input
                 v-model="auditData.remark"
@@ -92,7 +92,7 @@
           </div>
 
 
-          <div v-show="active===2">
+          <div v-if="active===2">
             <el-form v-permission="'biz:detail:alloc'"
                      :model="allocForm"
                      style="display: flex;align-items: center;justify-content: center">
@@ -116,10 +116,11 @@
           </div>
 
 
-          <div v-permission="'biz:detail:acc-rej-order'" v-show="active===3&&isShow===true" style="display: flex;justify-content: center;margin-top: 15px">
+          <div v-permission="'biz:detail:acc-rej-order'" v-if="active===3&&isShow===true" style="display: flex;justify-content: center;margin-top: 15px">
             <el-button type="primary">接受</el-button>
-            <el-button type="info">转单</el-button>
+            <el-button type="info" @click="digAllocOrder.initAndShow(usersData,tableData.orderId)" >转单</el-button>
           </div>
+
         </template>
       </el-card>
 
@@ -147,6 +148,10 @@
         </el-table>
 
 
+        <dig-alloc-order ref="digAllocOrder"/>
+
+
+
 
 
       </el-card>
@@ -165,8 +170,10 @@ import { allocServiceman, auditOrder, findAllocUser, findByOrderId, getHistoryOr
 import useSystemStore from '@/stores/system'
 import { getUsersByRole } from '@/api/role'
 import { findUserById } from '@/api/user'
+import DigAllocOrder from '@/views/order/detail/form/DigAllocOrder.vue'
+import { ElMessage } from 'element-plus'
 
-
+const digAllocOrder = ref()
 const historyData = ref([])
 const systemStore = useSystemStore()
 const active = ref(1)
@@ -194,11 +201,14 @@ const nextStep = async () => {
   auditData.value.orderId = tableData.value.orderId
   auditData.value.operatorName = systemStore.userInfo.userName
 
-  const res = await auditOrder(auditData.value)
+  await auditOrder(auditData.value)
 
-  // if (active.value++ > 2) {
-  //   active.value = 0
-  // }
+  ElMessage.success("审核成功")
+
+  setTimeout(()=>{
+    window.location.reload()
+  },1000)
+
 
 }
 
@@ -220,19 +230,16 @@ const getOneOrder = async () =>{
   historyData.value = res.data
 }
 
-//实时监听步骤条
-watch(active,async (value)=>{
-  console.log('当前active',value)
-  if (value===2){
-    const { data } = await getUsersByRole(perm.value)
-    usersData.value = data
-    console.log(data)
-  }
-  if (value===3){
+
+
+const load = async () =>{
+  const ress = await getUsersByRole(perm.value)
+  usersData.value = ress.data
+
+  if (active.value===3){
     let loginUserId = systemStore.userInfo.id
-    console.log('维修员！！')
-    console.log(systemStore.userInfo.id)
     const { data } = await findAllocUser(tableData.value.orderId)
+    console.log(data)
     if (data!=null){
       const res = await findUserById(data.allocUserId)
       currentNickName.value = res.data.nickName
@@ -241,10 +248,16 @@ watch(active,async (value)=>{
       }
 
     }
+  }
+
+}
 
 
-
-
+//实时监听步骤条
+watch(active,async (value)=>{
+  console.log('当前active',value)
+  if (value===2||value===3){
+    await load()
   }
 })
 
@@ -255,12 +268,20 @@ const handleAlloc = async () =>{
   allocForm.value.operatorName = systemStore.userInfo.userName
   allocForm.value.allocUserName = usersData.value.find(user=>user.id === allocForm.value.allocUserId).nickName
   await allocServiceman(allocForm.value)
-  window.location.reload()
 
+  ElMessage.success("分配成功")
+
+  setTimeout(()=>{
+    window.location.reload()
+
+  },1000)
 }
 
 
 getOneOrder()
+
+load()
+
 </script>
 
 <style lang="scss" scoped>

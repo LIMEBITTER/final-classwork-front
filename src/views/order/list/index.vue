@@ -34,8 +34,8 @@
 
         <el-table-column prop="state" label="状态">
           <template v-slot="{row}">
-            <el-tag v-if="row.state===1 || row.state === 2" type="success">进行中</el-tag>
-            <el-tag v-else-if="row.state===3">已结束</el-tag>
+            <el-tag v-if="row.state===1 || row.state === 2||row.state===3||row.state===4" type="success">进行中</el-tag>
+            <el-tag v-else-if="row.state===5">已结束</el-tag>
             <el-tag v-else type="warning">手动结束</el-tag>
           </template>
         </el-table-column>
@@ -52,7 +52,7 @@
             </span>
             <template #dropdown>
               <el-dropdown-menu>
-                <el-dropdown-item @click="checkOrder(row.orderId)">查看</el-dropdown-item>
+                <el-dropdown-item @click="checkOrder(row.orderId)">查看详情</el-dropdown-item>
                 <el-dropdown-item command="v"></el-dropdown-item>
                 <el-dropdown-item command="c">Action 3</el-dropdown-item>
 
