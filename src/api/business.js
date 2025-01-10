@@ -80,3 +80,16 @@ export const findAllocUser = (orderId) =>{
         }
     })
 }
+
+//更新工单状态
+export const updateOrderState = (orderId,state,operatorName) =>{
+    return request({
+        method:'POST',
+        url:'/order/updateOrderState',
+        params:{
+            orderId,
+            state,
+            operatorName
+        }
+    })
+}

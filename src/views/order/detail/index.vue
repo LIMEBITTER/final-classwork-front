@@ -117,8 +117,12 @@
 
 
           <div v-permission="'biz:detail:acc-rej-order'" v-if="active===3&&isShow===true" style="display: flex;justify-content: center;margin-top: 15px">
-            <el-button type="primary">接受</el-button>
+            <el-button type="primary" @click="confirmOrder(tableData.orderId)">接受</el-button>
             <el-button type="info" @click="digAllocOrder.initAndShow(usersData,tableData.orderId)" >转单</el-button>
+          </div>
+
+          <div v-permission="'biz:detail:orderEnding'" v-if="active===4&&isShow===true" style="display: flex;justify-content: center;margin-top: 15px">
+            <el-button type="primary" @click="endOrder(tableData.orderId)">结束工单</el-button>
           </div>
 
         </template>
@@ -139,6 +143,7 @@
             <template v-slot="{row}">
               <el-tag v-if="row.circulation===1" type="success">同意</el-tag>
               <el-tag v-else-if="row.circulation===2" type="warning">转交</el-tag>
+              <el-tag v-else-if="row.circulation===3" >结束工单</el-tag>
               <el-tag v-else type="danger">拒绝</el-tag>
             </template>
           </el-table-column>
@@ -166,12 +171,19 @@
 
 import { ref, watch } from 'vue'
 import {useRoute} from 'vue-router'
-import { allocServiceman, auditOrder, findAllocUser, findByOrderId, getHistoryOrder } from '@/api/business'
+import {
+  allocServiceman,
+  auditOrder,
+  findAllocUser,
+  findByOrderId,
+  getHistoryOrder,
+  updateOrderState
+} from '@/api/business'
 import useSystemStore from '@/stores/system'
 import { getUsersByRole } from '@/api/role'
 import { findUserById } from '@/api/user'
 import DigAllocOrder from '@/views/order/detail/form/DigAllocOrder.vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const digAllocOrder = ref()
 const historyData = ref([])
@@ -236,7 +248,7 @@ const load = async () =>{
   const ress = await getUsersByRole(perm.value)
   usersData.value = ress.data
 
-  if (active.value===3){
+  if (active.value===3||active.value===4){
     let loginUserId = systemStore.userInfo.id
     const { data } = await findAllocUser(tableData.value.orderId)
     console.log(data)
@@ -256,7 +268,7 @@ const load = async () =>{
 //实时监听步骤条
 watch(active,async (value)=>{
   console.log('当前active',value)
-  if (value===2||value===3){
+  if (value===2||value===3||value===4){
     await load()
   }
 })
@@ -277,6 +289,42 @@ const handleAlloc = async () =>{
   },1000)
 }
 
+//确认接单
+const confirmOrder = async (orderId) =>{
+
+  await ElMessageBox.confirm(
+    '确定接下当前工单?',
+    '注意',{
+      confirmButtonText:'确定',
+      cancelButtonClass:'取消',
+      type:'warning'
+    }).catch(()=>{
+    ElMessage.info('取消接单')
+    return new Promise(()=>{})
+  })
+
+  await updateOrderState(orderId,4,systemStore.userInfo.nickName)
+
+  ElMessage.success("接单成功")
+  setTimeout(()=>{
+    window.location.reload()
+
+  },500)
+
+}
+
+const endOrder = async (orderId) =>{
+  console.log('eeee',orderId)
+
+  await updateOrderState(orderId,5,systemStore.userInfo.nickName)
+
+  ElMessage.success("结束工单")
+  setTimeout(()=>{
+    window.location.reload()
+  },500)
+
+
+}
 
 getOneOrder()
 
