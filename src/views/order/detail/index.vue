@@ -160,6 +160,9 @@
 
 
       </el-card>
+      <comments/>
+
+
 
 
     </div>
@@ -184,6 +187,7 @@ import { getUsersByRole } from '@/api/role'
 import { findUserById } from '@/api/user'
 import DigAllocOrder from '@/views/order/detail/form/DigAllocOrder.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import Comments from '@/views/comment/comments.vue'
 
 const digAllocOrder = ref()
 const historyData = ref([])
@@ -219,7 +223,7 @@ const nextStep = async () => {
 
   setTimeout(()=>{
     window.location.reload()
-  },1000)
+  },500)
 
 
 }
