@@ -160,8 +160,8 @@
 
 
       </el-card>
-      <comments/>
-
+<!--      <comments/>-->
+      <comeback/>
 
 
 
@@ -188,6 +188,7 @@ import { findUserById } from '@/api/user'
 import DigAllocOrder from '@/views/order/detail/form/DigAllocOrder.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import Comments from '@/views/comment/comments.vue'
+import Comeback from '@/views/comment/comeback.vue'
 
 const digAllocOrder = ref()
 const historyData = ref([])
