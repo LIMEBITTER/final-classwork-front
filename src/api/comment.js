@@ -14,3 +14,11 @@ export const getAllComments = (orderId) =>{
     url:`/comment/${orderId}`
   })
 }
+
+//
+export const getCommentList = (orderId) =>{
+  return request({
+    method:'GET',
+    url:`/comeback/list/${orderId}`
+  })
+}
