@@ -3,11 +3,13 @@
       <div class="comment-header">
         <el-avatar :src="comment.avatar" class="avatar"></el-avatar>
         <div class="comment-meta">
-          <span class="username">{{ comment.author }}
-           <el-tag type="success" v-if="comment.role">{{ comment.role }}</el-tag>
-
+          <span class="username">
+            {{ comment.userName }}
+            <span v-for="roleName in comment.role">
+              <el-tag type="success">{{ roleName }}</el-tag>
+            </span>
           </span>
-          <span class="date">{{ comment.date }}</span>
+          <span class="date">{{ comment.createTime }}</span>
         </div>
       </div>
       <div class="comment-content">
@@ -18,7 +20,6 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
 import ReplyComment from '@/views/comment/reply-comment.vue'
 
 defineProps({

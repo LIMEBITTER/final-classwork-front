@@ -34,6 +34,8 @@ router.beforeEach(async (to, from, next) => {
     const res = await request.get('/auth/authInfo')
     systemStore.routers = res.data.routers
 
+    console.log('auth',res.data.userInfo)
+
     systemStore.userInfo = res.data.userInfo
     systemStore.permissionPerms = res.data.permissionPerms
 

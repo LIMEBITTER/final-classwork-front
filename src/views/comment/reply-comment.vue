@@ -18,7 +18,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { inject, ref } from 'vue'
+import useSystemStore from '@/stores/system'
+import { useRoute } from 'vue-router'
+import { doComment } from '@/api/comment'
+import { ElMessage } from 'element-plus'
+import emitter from '@/utils/emitter'
 
 defineProps({
   rootParentId:{
@@ -30,20 +35,39 @@ defineProps({
     default:null
   }
 })
+const route = useRoute()
+
+const systemStore = useSystemStore()
 
 const activeName = ref('1')
 
+const reload = inject('reLoadComments')
+
+
 const newReply = ref({
   content: '',
-  parentId: null, // 用于存储当前回复所针对的评论ID
-  author: '匿名', // 可以在提交时从用户信息中获取
-  role: '普通用户', // 可以在提交时从用户信息中获取
-  date: new Date()
+  parentId: null,
+  rootParentId:null,
+  userId:systemStore.userInfo.id,
+  userName: systemStore.userInfo.nickName,
+  orderId:route.query.orderId
 })
-const addReply = (id,rootParentId) =>{
-  console.log('当前的评论id',id,rootParentId)
+const addReply = async (id,rootParentId) =>{
+  newReply.value.parentId = id
+  newReply.value.rootParentId = rootParentId
+  await doComment(newReply.value)
+
+  newReply.value.content = ''
+
+  ElMessage.success("评论成功")
+
+
+  await reload()
 
 }
+
+
+
 </script>
 
 <style lang="scss" scoped>
