@@ -10,3 +10,10 @@ export const getUsersByRole = (perm) =>{
     }
   })
 }
+
+export const getAllRoles = () =>{
+  return request({
+    method:'GET',
+    url:'/role'
+  })
+}

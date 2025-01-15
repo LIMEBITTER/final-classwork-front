@@ -19,27 +19,42 @@
           <el-input v-model="noticeForm.content" type="textarea" />
         </el-form-item>
 
-        <el-form-item label="通知等级" prop="publish_status">
+        <el-form-item label="通知等级" prop="level">
           <el-select
-            v-model="value"
-            class="m-2"
-            placeholder="Select"
+            v-model="noticeForm.level"
+            placeholder="选择通知等级"
             size="large"
             style="width: 240px"
           >
-            <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option label="低" :value="1"/>
+            <el-option label="中" :value="2"/>
+            <el-option label="高" :value="3"/>
+
           </el-select>
         </el-form-item>
         <el-form-item label="目标类型" prop="target_type">
-          <el-radio-group v-model="noticeForm.resource">
-            <el-radio label="Sponsor" />
-            <el-radio label="Venue" />
+          <el-radio-group v-model="selectedTargetType">
+            <el-radio label="全体" :value="0" />
+            <el-radio label="指定" :value="1"/>
           </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="指定角色" prop="target_type" v-show="selectedTargetType===1">
+          <el-select
+            v-model="noticeForm.targetRoleIds"
+            placeholder="选择指定角色"
+            size="large"
+            style="width: 240px"
+            multiple
+          >
+            <el-option
+              v-for="item in rolesData"
+              :key="item.id"
+              :label="item.name"
+              :value="item.id"
+            />
+
+          </el-select>
         </el-form-item>
 
 
@@ -49,7 +64,7 @@
       <template #footer>
       <span class="dialog-footer">
       <span class="dialog-footer">
-        <el-button @click="handleResetForm(ruleFormRef)">取消</el-button>
+        <el-button @click="handleResetForm(ruleFormRef)" >取消</el-button>
         <el-button type="primary" @click="handleSubmitForm(ruleFormRef)"> 提交 </el-button>
       </span>
       </span>
@@ -61,16 +76,26 @@
 
 <script setup name="NoticeForm">
 import { getOneNotice, saveNotice, updateNotice } from '@/api/notice'
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import useSystemStore from '@/stores/system'
+import { getAllRoles } from '@/api/role'
 
-const noticeForm = reactive({})
+const systemStore = useSystemStore()
+
+const noticeForm = reactive({
+  publishStatus:0,
+  publisherName:systemStore.userInfo.userName
+})
 
 const props = defineProps(['dialogVisible'])
 // 子组件向父组件传递数据
 const emit = defineEmits(['changeDialog'])
 const ruleFormRef = ref()
 
+const roles = ref([])
+const selectedTargetType = ref(0)
+const rolesData = ref([])
 
 // 表单规则
 const rules = reactive({
@@ -95,9 +120,11 @@ const handleClose = (done) => {
     })
 }
 
+
 const getNoticeForm = async (id) =>{
   const {data} = await getOneNotice(id)
   Object.assign(noticeForm,data)
+
 
 }
 
@@ -115,14 +142,17 @@ const handleSubmitForm = async (formEl) =>{
 
   await formEl.validate(async (valid,fields) =>{
     if (valid){
+      noticeForm.targetType = selectedTargetType
 
       console.log(noticeForm)
       //不为空，更新操作
-      // if (noticeForm.id!=null){
-      //   await updateNotice(noticeForm.id, noticeForm)
-      // }else {
-      //   await saveNotice(noticeForm)
-      // }
+      if (noticeForm.id!=null){
+        console.log('更新')
+        await updateNotice(noticeForm.id, noticeForm)
+      }else {
+        console.log('保存吗')
+        await saveNotice(noticeForm)
+      }
 
       ElMessage({
         showClose: true,
@@ -137,6 +167,19 @@ const handleSubmitForm = async (formEl) =>{
     }
   })
 }
+
+//监听
+watch(selectedTargetType,async (value)=>{
+  if (value===1){
+    const {data} = await getAllRoles()
+    console.log(data)
+
+    rolesData.value = data
+
+  }else {
+    rolesData.value = []
+  }
+})
 
 
 defineExpose({
