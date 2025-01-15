@@ -56,3 +56,12 @@ export const deleteBatchByIds = (ids) =>{
     url:`/notice/batch/${ids}`
   })
 }
+
+export const findNoticeByRole = (ids) =>{
+  return request({
+    method:'POST',
+    url:'/notice/findNoticeByRole',
+    data:ids
+
+  })
+}

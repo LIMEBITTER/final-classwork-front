@@ -3,7 +3,7 @@
     <el-dialog
       :modelValue="dialogVisible"
       :before-close="handleClose"
-      title="Tips" width="30%"
+      title="编辑数据" width="30%"
       draggable
     >
 
@@ -39,7 +39,7 @@
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item label="指定角色" prop="target_type" v-show="selectedTargetType===1">
+        <el-form-item label="指定角色" prop="target_type" v-if="selectedTargetType===1">
           <el-select
             v-model="noticeForm.targetRoleIds"
             placeholder="选择指定角色"
@@ -85,7 +85,8 @@ const systemStore = useSystemStore()
 
 const noticeForm = reactive({
   publishStatus:0,
-  publisherName:systemStore.userInfo.userName
+  publisherName:systemStore.userInfo.userName,
+  targetRoleIds:[]
 })
 
 const props = defineProps(['dialogVisible'])
@@ -122,18 +123,29 @@ const handleClose = (done) => {
 
 
 const getNoticeForm = async (id) =>{
-  const {data} = await getOneNotice(id)
+  const { data } = await getOneNotice(id)
   Object.assign(noticeForm,data)
+  selectedTargetType.value = data.targetType
+  const res = await getAllRoles()
+  rolesData.value = res.data
 
-
+}
+const loadRoles = async () =>{
+  const res = await getAllRoles()
+  rolesData.value = res.data
 }
 
 
 // 取消弹框
 const handleResetForm = (formEl) => {
   if (!formEl) return
+
   formEl.resetFields()
-  formEl.id = undefined
+  noticeForm.id = undefined
+  // selectedTargetType.value = 0
+  // formEl.targetRoleIds = []
+  rolesData.value = []
+  noticeForm.targetRoleIds = []
   emit('changeDialog', false)
 }
 
@@ -143,14 +155,15 @@ const handleSubmitForm = async (formEl) =>{
   await formEl.validate(async (valid,fields) =>{
     if (valid){
       noticeForm.targetType = selectedTargetType
-
       console.log(noticeForm)
+      if (noticeForm.targetType===0 ){
+        noticeForm.targetRoleIds = rolesData.value.map(r=>r.id)
+      }
+
       //不为空，更新操作
       if (noticeForm.id!=null){
-        console.log('更新')
         await updateNotice(noticeForm.id, noticeForm)
       }else {
-        console.log('保存吗')
         await saveNotice(noticeForm)
       }
 
@@ -160,30 +173,23 @@ const handleSubmitForm = async (formEl) =>{
         type: 'success'
       })
       // window.location.reload()
-
-
     }else {
       ElMessage.error(`提交失败：${JSON.stringify(fields)}`)
     }
   })
 }
 
-//监听
-watch(selectedTargetType,async (value)=>{
-  if (value===1){
-    const {data} = await getAllRoles()
-    console.log(data)
 
-    rolesData.value = data
-
-  }else {
-    rolesData.value = []
+watch(()=>noticeForm.targetRoleIds, (value)=>{
+  if (value.length === rolesData.value.length){
+    selectedTargetType.value = 0
   }
 })
 
 
 defineExpose({
-  getNoticeForm
+  getNoticeForm,
+  loadRoles
 })
 </script>
 

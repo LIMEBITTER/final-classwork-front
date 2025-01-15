@@ -93,3 +93,12 @@ export const updateOrderState = (orderId,state,operatorName) =>{
         }
     })
 }
+
+//查询当前用户的所有工单
+export const findOrderByUserId = (id) =>{
+    return request({
+        method:'GET',
+        url:`/order/findByUserId/${id}`
+    })
+}
+

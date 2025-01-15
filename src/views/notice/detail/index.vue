@@ -41,7 +41,6 @@
 
 import { getOneNotice } from '@/api/notice'
 import { reactive, ref } from 'vue'
-import { ElMessageBox } from 'element-plus'
 
 const props = defineProps(['dialogTableVisible'])
 // 子组件向父组件传递数据

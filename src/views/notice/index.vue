@@ -20,7 +20,7 @@
     <el-col>
       <el-form :inline="true">
         <el-form-item>
-          <el-input v-model="title" placeholder="点击输入角色名称"></el-input>
+          <el-input v-model="title" placeholder="输入标题名称"></el-input>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="load">查询</el-button>
@@ -201,6 +201,7 @@ const handleReset = () => {
 
 const handleAdd = async () => {
   dialogVisible.value = true
+  await childComp.value.loadRoles()
 }
 //子组件传值给父组件,更改显示状态
 const handleChangeDialog = async (value) => {
@@ -224,10 +225,9 @@ const handleUpdate = async (id) => {
   await load()
 }
 
-//todo dfdf
+
 const handleCheckDetail = async (id) =>{
   dialogTableVisible.value = true
-  console.log('@@@@@')
   await childTable.value.getNoticeTable(id)
   await load()
 }
