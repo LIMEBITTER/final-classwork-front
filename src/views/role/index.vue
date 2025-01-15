@@ -115,7 +115,7 @@ const handleSelectionChange = (val) => {
   disabled.value = val.length === 0
 }
 //子组件传值给父组件,更改显示状态
-const handlechangeDialog = (value) => {
+const handleChangeDialog = (value) => {
   dialogVisible.value = value
   load()
 }
@@ -125,7 +125,7 @@ const handlechangeDialog = (value) => {
   <!--  编辑弹框-->
   <RoleForm
     :dialogVisible="dialogVisible"
-    @changeDialog="handlechangeDialog"
+    @changeDialog="handleChangeDialog"
     ref="childComp"
   ></RoleForm>
 

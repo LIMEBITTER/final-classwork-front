@@ -116,7 +116,6 @@ const handleSetCheckKeys = async () => {
 // 权限树形组件数据的获取(查询所有的权限（包括未勾选的）)
 const handleGetTrees = async () => {
   const res = await request.get('/permission/page')
-  console.log('hhhh',res.data)
   treeData.value = res.data
 }
 handleGetTrees()

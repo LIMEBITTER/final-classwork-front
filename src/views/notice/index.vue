@@ -1,17 +1,17 @@
 <template>
   <!--  编辑弹框-->
-  <RoleForm
+  <NoticeForm
     :dialogVisible="dialogVisible"
-    @changeDialog="handlechangeDialog"
+    @changeDialog="handleChangeDialog"
     ref="childComp"
-  ></RoleForm>
+  ></NoticeForm>
 
   <el-row>
     <!--  分页查询表单按钮-->
     <el-col>
       <el-form :inline="true">
         <el-form-item>
-          <el-input v-model="name" placeholder="点击输入角色名称"></el-input>
+          <el-input v-model="title" placeholder="点击输入角色名称"></el-input>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="load">查询</el-button>
@@ -112,7 +112,69 @@
 <script setup>
 
 import { Delete, Edit, InfoFilled, Plus, Refresh, Search } from '@element-plus/icons-vue'
-import RoleForm from '@/views/role/form/index.vue'
+import NoticeForm from '@/views/notice/form/index.vue'
+import { ref } from 'vue'
+import { findNoticePage } from '@/api/notice'
+
+const title = ref('')
+// 当前页数
+const pageNum = ref(1)
+// 每页展示量
+const pageSize = ref(10)
+// 分页数据总数
+const total = ref(0)
+
+const tableData = ref([])
+// 是否展示弹框
+const dialogVisible = ref(false)
+// 获取子组件对象
+const childComp = ref(null)
+
+// 修改每页展示的数据量
+const handleSizeChange = (size) => {
+  pageSize.value = size
+  load()
+}
+// 翻页方法
+const handleCurrentChange = (current) => {
+  pageNum.value = current
+  load()
+}
+
+// 清空查询数据重置
+const handleReset = () => {
+  title.value = ''
+  load()
+}
+
+const handleAdd = async () => {
+  dialogVisible.value = true
+}
+//子组件传值给父组件,更改显示状态
+const handleChangeDialog = (value) => {
+  dialogVisible.value = value
+  load()
+}
+// 修改
+const handleUpdate = async (id) => {
+  dialogVisible.value = true
+  await childComp.value.getNoticeForm(id)
+}
+
+
+const load = async () =>{
+
+  const {data} = await findNoticePage(title.value,pageNum.value,pageSize.value)
+
+  pageNum.value = data.current
+  pageSize.value = data.size
+  total.value = data.total
+  tableData.value = data.records
+
+}
+
+load()
+
 </script>
 
 <style lang="scss" scoped>
