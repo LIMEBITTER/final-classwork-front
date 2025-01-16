@@ -50,6 +50,7 @@ request.interceptors.response.use(
   },
   (error) => {
     NProgress.done()
+    console.log(error.response)
     const status = error.response.status
     if (status === 400) {
       showErrorMessage(error.response.data.msg)
