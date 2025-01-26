@@ -1,5 +1,6 @@
 // WebSocket地址
 import settings from '@/utils/settings'
+import useSystemStore from '@/stores/system'
 
 const url = settings.socket_url_test
 
@@ -12,18 +13,24 @@ let reconnectTimer
 // WebSocket重连开关
 let isReconnecting = false
 
+const systemStore = useSystemStore()
+
 // WebSocket对象
 const websocket = {
   // WebSocket建立连接
-  Init (username) {
+  Init (userId) {
     // 判断浏览器是否支持WebSocket
     if (!('WebSocket' in window)) {
       console.log('浏览器不支持WebSocket')
       return
     }
+    // if (userId===null || userId===''){
+    //   userId = systemStore.userInfo.id
+    // }
+
 
     // 创建WebSocket实例
-    ws = new WebSocket(url + username)
+    ws = new WebSocket(url + userId)
 
     // 监听WebSocket连接
     ws.onopen = () => {
@@ -67,6 +74,7 @@ const websocket = {
     const msg = JSON.stringify(data)
     // 发送消息给后端
     ws.send(msg)
+
   },
 
   // 暴露WebSocket实例，其他地方调用就调用这个
@@ -100,10 +108,12 @@ if (performance.getEntriesByType('navigation')[0].type === 'reload') {
     console.log('WebSocket执行刷新后重连...')
     // 刷新后重连
     // 获取登录用户id
-    let userId = ''
+    let userId = systemStore.userInfo.id
+
     websocket.Init(userId)
   }, 200) // 适当调整延迟时间
 }
+
 
 // 重连方法
 function reconnect () {
@@ -116,7 +126,7 @@ function reconnect () {
   reconnectTimer = setTimeout(function () {
     console.log('WebSocket执行断线重连...')
     // 获取登录用户id
-    let userId = ''
+    let userId = systemStore.userInfo.id
     websocket.Init(userId)
     isReconnecting = false
   }, 4000)

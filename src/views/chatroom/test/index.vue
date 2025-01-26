@@ -9,8 +9,8 @@
       <!-- User list (with scroll) -->
       <el-scrollbar class="user-list-scroll">
         <el-row>
-          <el-col :span="24" v-for="form in messageForm" :key="form.sendUser.userId" @click="chooseUser(form.sendUser)" class="user-item" v-if="messageForm.length !== 0">
-            <div class="user-avatar-wrapper">
+          <el-col :span="24"  v-for="form in messageForm" :key="form.sendUser.userId" @click="chooseUser(form.sendUser)" class="user-item"  >
+            <div class="user-avatar-wrapper" v-if="messageForm.length!==0">
               <div :class="{ 'online-dot': form.isOnline }"></div>
               <!-- Element UI Badge for showing unread messages -->
               <el-badge :value="form.noReadMessageLength" class="message-badge" v-if="form.noReadMessageLength > 0">
@@ -34,8 +34,9 @@
       </div>
       <!-- Chat messages -->
       <el-scrollbar class="chat-messages" ref="messageContainer">
-        <div class="messageBox" v-for="message in messages" :key="message.handle" :class="{ ownMessage: message.sendUser === loginUser.id, otherMessage: message.sendUser !== loginUser.id }">
-          <div><img :src="message.sendUser === loginUser.id ? loginUser.avatar : currentUser.avatar" alt="" style="border: 1px solid #70c1fa;"></div>
+        <div class="messageBox" v-for="message in messages" :key="message.id" :class="{ ownMessage: message.sendUser === loginUser.id.toString(), otherMessage: message.sendUser !== loginUser.id.toString() }">
+
+          <div><img :src="message.sendUser === loginUser.id.toString() ? loginUser.avatar : currentUser.avatar" alt="" style="border: 1px solid #70c1fa;"></div>
           <div class="messageContent">{{ message.content }}</div>
           <div class="messageTime">{{ message.createTime.replace('T', ' ') }}</div>
         </div>
@@ -55,8 +56,9 @@ import { nextTick, onMounted, ref } from 'vue'
 import useSystemStore from '@/stores/system'
 import { ElMessage } from 'element-plus'
 import websocket from '@/utils/websocket'
-import { sendMessageTo } from '@/api/socket'
-import { findMessageBySendAndReceive } from '@/api/message'
+// import { sendMessageTo } from '@/api/socket'
+import { findMessageBySendAndReceive, searchUserForm } from '@/api/message'
+import { sendMessageTo } from '@/api/message'
 
 const systemStore = useSystemStore()
 
@@ -70,11 +72,32 @@ const newMessage = ref({})
 const searchUserName = ref('')
 const messageContainer = ref(null)
 
+const receiverMessages = ref([])
+const senderMessages = ref([])
+
 
 const fetchMessages = async (userId) => {
 
+  console.log(userId)
+
+  if (!userId){
+    console.log('gjgjgjgjgg')
+    await searchAllForm()
+    return
+  }
   const res = await findMessageBySendAndReceive(userId,loginUser.id)
+
+
+  let loginId = loginUser.id.toString()
+
   messages.value = res.data
+  console.log('eee',messages.value)
+  receiverMessages.value = messages.value.filter(msg=>{
+    return msg.receiveUser === loginId
+  })
+  senderMessages.value = messages.value.filter(msg=>{
+    return msg.sendUser === loginId
+  })
 
   //聊天记录拉至最下方
   await nextTick(() => {
@@ -82,27 +105,36 @@ const fetchMessages = async (userId) => {
   })
 }
 
-const sendMessage = () =>{
-  if (!newMessage.value.content.trim()){
+const sendMessage = async () =>{
+  if (newMessage.value.content===undefined){
     ElMessage.warning('请输入聊天内容')
     return
   }
-  newMessage.value.content = newMessage.value.content.trim()
 
-  if (loginUser.id === currentUser.value.userId){
+  if (loginUser.id === currentUser.value.id){
     ElMessage.error('不能给自己发送信息!')
     return
   }
 
   newMessage.value.sendUser = loginUser.id
-  newMessage.value.receiveUser = currentUser.value.userId
-  sendWebSocketMessage(newMessage.value)
-  sendMessageTo(newMessage.value).then(res=>{
-    console.log('这是sendMessageTo',res)
+  newMessage.value.receiveUser = currentUser.value.id
+  // const res = await sendMessageTo(newMessage.value)
 
-    chooseUser(currentUser.value)
+  console.log(newMessage.value)
+  const res = await sendMessageTo(newMessage.value)
 
-  })
+  await sendWebSocketMessage(newMessage.value)
+
+  await chooseUser(currentUser.value)
+
+
+
+
+  newMessage.value.content = ''
+
+
+
+
 
 }
 
@@ -118,9 +150,23 @@ const checkAvatar = (avatar) => {
   return ''
 }
 
-const chooseUser = (user) => {
+const chooseUser = async (user) => {
   currentUser.value = user
-  fetchMessages(user.userId)  //获取当前要聊天用户的聊天记录
+  await fetchMessages(user.id)  //获取当前要聊天用户的聊天记录
+}
+
+//获取所有信息
+const searchAllForm = async () =>{
+  // if (loginUser.id!==null){
+  console.log('44444444555555')
+
+  const res = await searchUserForm(loginUser.id)
+
+    console.log('34344343')
+
+    messageForm.value = res.data
+
+  // }
 }
 
 const connectWebSocket = async (userId) =>{
@@ -132,54 +178,49 @@ const connectWebSocket = async (userId) =>{
       console.log('WebSocket连接成功')
       resolve()
     }
+
+
   })
 }
 
 //发送消息
-const sendWebSocketMessage = (message) =>{
-  websocket.getWebSocket().onmessage = (event) =>{
-    // 处理消息，这里你可以根据实际需求更新页面上的数据
-    console.log('收到的消息：',event)
-    //更新收到的消息
-    // receivedMessage.value = event.data
-
-    //当前用户是否存在，
-    if (currentUser.value) {
-      fetchMessages(currentUser.value.userId)
-    } else {
-      fetchMessages()
-    }
-
-
-  }
+const sendWebSocketMessage = async (message) =>{
+  await websocket.Send(message)
 }
 
-const handleMessage = (message) => {
+const handleMessage = async (message) => {
   const parsedMessage = JSON.parse(message)
   console.log('收到消息：',parsedMessage)
   //当前用户是否存在，
   if (currentUser.value) {
-    fetchMessages(currentUser.value.userId)
+    console.log('啊收到消息了')
+    await fetchMessages(currentUser.value.id)
+
+    await searchAllForm()
+
   } else {
-    fetchMessages()
+    await fetchMessages()
   }
 }
 
-// onMounted(()=>{
-//   websocket.setMessageCallback((res)=>{
-//     handleMessage(res)
-//   })
-// })
+onMounted(()=>{
+  websocket.setMessageCallback((res)=>{
+    handleMessage(res)
+  })
+})
+
 
 
 
 connectWebSocket(loginUser.id)
+
+searchAllForm()
 </script>
 
 <style lang="scss" scoped>
 .chat-container {
   display: flex;
-  height: 100%;
+  height: 100vh;
   background: linear-gradient(to bottom right, #FFFFFF, #ECEFF1);
 }
 
