@@ -12,6 +12,16 @@
             <span style="font-size: 12px;color: limegreen; margin-left: 5px" v-if="user.username === chatUser">chatting...</span>
           </div>
         </el-card>
+        <el-card style="width: 100%; min-height: 300px; color: #333">
+          <div style="padding-bottom: 10px; border-bottom: 1px solid #ccc">公共聊天室</div>
+          <div style="padding: 10px 0" v-for="user in users" :key="user.username">
+            <span>公共频道</span>
+            <i @click="setChatUser(user.username)">
+              <ChatDotRound style="width:20px;height:20px;margin-left: 20px; font-size: 16px; cursor: pointer"/>
+            </i>
+            <span style="font-size: 12px;color: limegreen; margin-left: 5px" v-if="user.username === chatUser">chatting...</span>
+          </div>
+        </el-card>
       </el-col>
       <el-col :span="16">
         <div style="width: 800px; margin: 0 auto; background-color: white;
@@ -151,7 +161,6 @@ const initEnv = () =>{
 }
 
 const setChatUser = (username) =>{
-  console.log(33434)
   chatUser.value = username
 }
 
