@@ -6,3 +6,10 @@ export const findUserById = (id) =>{
     url:`/user/${id}`
   })
 }
+
+export const findUserAndAvatar = () =>{
+  return request({
+    method:'GET',
+    url:'/user/findUserAndAvatar'
+  })
+}

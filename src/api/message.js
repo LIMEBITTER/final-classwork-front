@@ -28,3 +28,13 @@ export const sendMessageTo = (data) =>{
     data:data
   })
 }
+
+export const findBroadCastMessages = (loginUserId) =>{
+  return request({
+    url:'/message/getBroadcastMessages',
+    method:'GET',
+    params:{
+      loginUserId
+    }
+  })
+}

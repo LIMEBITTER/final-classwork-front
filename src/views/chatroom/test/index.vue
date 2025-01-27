@@ -9,7 +9,22 @@
       <!-- User list (with scroll) -->
       <el-scrollbar class="user-list-scroll">
         <el-row>
+          <el-col class="user-item" @click="chooseUser(null)">
+            <div class="user-avatar-wrapper" >
+              <el-badge  class="message-badge">
+                <img  class="user-avatar">
+              </el-badge>
+            </div>
+            <div class="user-details">
+              <div class="user-name">公共聊天室</div>
+              <div class="user-last-message">{{broadCastLastMessage}}&nbsp;</div>
+            </div>
+          </el-col>
+
           <el-col :span="24"  v-for="form in messageForm" :key="form.sendUser.userId" @click="chooseUser(form.sendUser)" class="user-item"  >
+
+
+
             <div class="user-avatar-wrapper" v-if="messageForm.length!==0">
               <div :class="{ 'online-dot': form.isOnline }"></div>
               <!-- Element UI Badge for showing unread messages -->
@@ -30,20 +45,23 @@
     <div class="right-side">
       <!-- Chat header -->
       <div class="chat-header">
-        <span v-if="currentUser">{{ currentUser.userName }}</span>
+        <span >{{ currentUser===null?"公共聊天室":currentUser.userName }}</span>
+
       </div>
       <!-- Chat messages -->
       <el-scrollbar class="chat-messages" ref="messageContainer">
         <div class="messageBox" v-for="message in messages" :key="message.id" :class="{ ownMessage: message.sendUser === loginUser.id.toString(), otherMessage: message.sendUser !== loginUser.id.toString() }">
 
-          <div><img :src="message.sendUser === loginUser.id.toString() ? loginUser.avatar : currentUser.avatar" alt="" style="border: 1px solid #70c1fa;"></div>
+          <div v-if="newMessage.type===1"><img  :src="message.sendUser === loginUser.id.toString() ? loginUser.avatar : currentUser.avatar" alt="" style="border: 1px solid #70c1fa;"></div>
+          <div v-else><img  style="border: 1px solid #70c1fa;"></div>
+
           <div class="messageContent">{{ message.content }}</div>
           <div class="messageTime">{{ message.createTime.replace('T', ' ') }}</div>
         </div>
       </el-scrollbar>
       <div class="chat-input">
-        <el-input v-model="newMessage.content" placeholder="请输入聊天内容" autosize class="message-input" @keydown.enter="sendMessage"></el-input>
-        <el-button type="primary" @click="sendMessage" class="send-button">发送</el-button>
+        <el-input v-model="newMessage.content" placeholder="请输入聊天内容" autosize class="message-input" @keydown.enter="handleSendMessage"></el-input>
+        <el-button type="primary" @click="handleSendMessage" class="send-button">发送</el-button>
       </div>
     </div>
   </div>
@@ -56,9 +74,9 @@ import { nextTick, onMounted, ref } from 'vue'
 import useSystemStore from '@/stores/system'
 import { ElMessage } from 'element-plus'
 import websocket from '@/utils/websocket'
-// import { sendMessageTo } from '@/api/socket'
-import { findMessageBySendAndReceive, searchUserForm } from '@/api/message'
+import { findBroadCastMessages, findMessageBySendAndReceive, searchUserForm } from '@/api/message'
 import { sendMessageTo } from '@/api/message'
+import { findUserAndAvatar } from '@/api/user'
 
 const systemStore = useSystemStore()
 
@@ -72,37 +90,47 @@ const newMessage = ref({})
 const searchUserName = ref('')
 const messageContainer = ref(null)
 
-const receiverMessages = ref([])
-const senderMessages = ref([])
+// const receiverMessages = ref([])
+// const senderMessages = ref([])
+
+const broadCastLastMessage = ref('')
 
 
 const fetchMessages = async (userId) => {
-
-  console.log(userId)
-
   if (!userId){
-    console.log('gjgjgjgjgg')
     await searchAllForm()
+
+    const res = await findBroadCastMessages(loginUser.id)
+
+    console.log('rrr',res)
+
+    broadCastLastMessage.value = res.data.lastMessage
+    messages.value = res.data.messages
+
+
+
     return
   }
   const res = await findMessageBySendAndReceive(userId,loginUser.id)
 
-
-  let loginId = loginUser.id.toString()
-
+  // let loginId = loginUser.id.toString()
   messages.value = res.data
-  console.log('eee',messages.value)
-  receiverMessages.value = messages.value.filter(msg=>{
-    return msg.receiveUser === loginId
-  })
-  senderMessages.value = messages.value.filter(msg=>{
-    return msg.sendUser === loginId
-  })
+
+  // receiverMessages.value = messages.value.filter(msg=>{
+  //   return msg.receiveUser === loginId
+  // })
+  // senderMessages.value = messages.value.filter(msg=>{
+  //   return msg.sendUser === loginId
+  // })
 
   //聊天记录拉至最下方
   await nextTick(() => {
     scrollToBottom()
   })
+}
+//点击改变为公共广播或私聊
+const defaultType = () =>{
+  newMessage.value.type = 0
 }
 
 const sendMessage = async () =>{
@@ -115,27 +143,46 @@ const sendMessage = async () =>{
     ElMessage.error('不能给自己发送信息!')
     return
   }
-
   newMessage.value.sendUser = loginUser.id
-  newMessage.value.receiveUser = currentUser.value.id
-  // const res = await sendMessageTo(newMessage.value)
 
-  console.log(newMessage.value)
-  const res = await sendMessageTo(newMessage.value)
+  newMessage.value.receiveUser = currentUser.value.id
+
+  await sendMessageTo(newMessage.value)
 
   await sendWebSocketMessage(newMessage.value)
 
   await chooseUser(currentUser.value)
 
-
-
-
   newMessage.value.content = ''
 
+}
 
+const sendMessageAll = async () => {
+  if (newMessage.value.content===undefined){
+    ElMessage.warning('请输入聊天内容')
+    return
+  }
+  newMessage.value.sendUser = loginUser.id
 
+  newMessage.value.receiveUser = null
 
+  await sendMessageTo(newMessage.value)
 
+  await sendWebSocketMessage(newMessage.value)
+
+  await chooseUser(currentUser.value)
+
+  newMessage.value.content = ''
+}
+
+const handleSendMessage = async () => {
+  if (newMessage.value.type === 0){
+    console.log('public')
+    await sendMessageAll()
+  }else {
+    console.log('private')
+    await sendMessage()
+  }
 }
 
 //消息过多，滚动至最新消息位置
@@ -151,22 +198,27 @@ const checkAvatar = (avatar) => {
 }
 
 const chooseUser = async (user) => {
-  currentUser.value = user
-  await fetchMessages(user.id)  //获取当前要聊天用户的聊天记录
+
+  console.log('@@@@',user)
+  if (user!=null){
+    currentUser.value = user
+    newMessage.value.type = 1
+    await fetchMessages(user.id)  //获取当前要聊天用户的聊天记录
+  }else {
+    messages.value = []
+    newMessage.value.type = 0
+    currentUser.value = null
+    await fetchMessages()
+  }
+
 }
 
 //获取所有信息
 const searchAllForm = async () =>{
-  // if (loginUser.id!==null){
-  console.log('44444444555555')
-
-  const res = await searchUserForm(loginUser.id)
-
-    console.log('34344343')
-
+  if (loginUser.id!==null){
+    const res = await searchUserForm(loginUser.id)
     messageForm.value = res.data
-
-  // }
+  }
 }
 
 const connectWebSocket = async (userId) =>{
@@ -193,7 +245,6 @@ const handleMessage = async (message) => {
   console.log('收到消息：',parsedMessage)
   //当前用户是否存在，
   if (currentUser.value) {
-    console.log('啊收到消息了')
     await fetchMessages(currentUser.value.id)
 
     await searchAllForm()
@@ -203,18 +254,24 @@ const handleMessage = async (message) => {
   }
 }
 
+const findUserInfo = async () => {
+  const res = await findUserAndAvatar()
+  console.log('@@@@@@4444',res)
+}
+
 onMounted(()=>{
   websocket.setMessageCallback((res)=>{
     handleMessage(res)
   })
 })
 
-
-
+findUserInfo()
 
 connectWebSocket(loginUser.id)
 
 searchAllForm()
+
+defaultType()
 </script>
 
 <style lang="scss" scoped>
