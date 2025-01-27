@@ -12,7 +12,7 @@
           <el-col class="user-item" @click="chooseUser(null)">
             <div class="user-avatar-wrapper" >
               <el-badge  class="message-badge">
-                <img  class="user-avatar">
+                <img class="user-avatar">
               </el-badge>
             </div>
             <div class="user-details">
@@ -22,11 +22,8 @@
           </el-col>
 
           <el-col :span="24"  v-for="form in messageForm" :key="form.sendUser.userId" @click="chooseUser(form.sendUser)" class="user-item"  >
-
-
-
             <div class="user-avatar-wrapper" v-if="messageForm.length!==0">
-              <div :class="{ 'online-dot': form.isOnline }"></div>
+              <div :class="form.isOnline?'online-dot':'offline-dot'"></div>
               <!-- Element UI Badge for showing unread messages -->
               <el-badge :value="form.noReadMessageLength" class="message-badge" v-if="form.noReadMessageLength > 0">
                 <img :src="form.sendUser.avatar" class="user-avatar">
@@ -53,11 +50,12 @@
         <div class="messageBox" v-for="message in messages" :key="message.id" :class="{ ownMessage: message.sendUser === loginUser.id.toString(), otherMessage: message.sendUser !== loginUser.id.toString() }">
 
           <div v-if="newMessage.type===1"><img  :src="message.sendUser === loginUser.id.toString() ? loginUser.avatar : currentUser.avatar" alt="" style="border: 1px solid #70c1fa;"></div>
-          <div v-else><img  style="border: 1px solid #70c1fa;"></div>
+          <div v-else><img :src="getUserAvatarById(message.sendUser)" style="border: 1px solid #70c1fa;"></div>
 
           <div class="messageContent">{{ message.content }}</div>
           <div class="messageTime">{{ message.createTime.replace('T', ' ') }}</div>
         </div>
+<!--        <div class="joinInfo" v-if="newMessage.type===0">xxx加入了聊天室</div>-->
       </el-scrollbar>
       <div class="chat-input">
         <el-input v-model="newMessage.content" placeholder="请输入聊天内容" autosize class="message-input" @keydown.enter="handleSendMessage"></el-input>
@@ -70,7 +68,7 @@
 
 <script setup>
 
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import useSystemStore from '@/stores/system'
 import { ElMessage } from 'element-plus'
 import websocket from '@/utils/websocket'
@@ -95,6 +93,10 @@ const messageContainer = ref(null)
 
 const broadCastLastMessage = ref('')
 
+const usersInfo = ref([])
+
+// const socketMsg = ref({})
+
 
 const fetchMessages = async (userId) => {
   if (!userId){
@@ -102,13 +104,8 @@ const fetchMessages = async (userId) => {
 
     const res = await findBroadCastMessages(loginUser.id)
 
-    console.log('rrr',res)
-
     broadCastLastMessage.value = res.data.lastMessage
     messages.value = res.data.messages
-
-
-
     return
   }
   const res = await findMessageBySendAndReceive(userId,loginUser.id)
@@ -141,6 +138,7 @@ const sendMessage = async () =>{
 
   if (loginUser.id === currentUser.value.id){
     ElMessage.error('不能给自己发送信息!')
+    newMessage.value.content = ''
     return
   }
   newMessage.value.sendUser = loginUser.id
@@ -166,6 +164,8 @@ const sendMessageAll = async () => {
 
   newMessage.value.receiveUser = null
 
+  newMessage.value.sendUserName = loginUser.userName
+
   await sendMessageTo(newMessage.value)
 
   await sendWebSocketMessage(newMessage.value)
@@ -190,21 +190,14 @@ const scrollToBottom = () => {
   messageContainer.value.scrollTop = messageContainer.value.scrollHeight
 }
 
-const checkAvatar = (avatar) => {
-  if (avatar){
-    return avatar
-  }
-  return ''
-}
-
 const chooseUser = async (user) => {
 
-  console.log('@@@@',user)
   if (user!=null){
     currentUser.value = user
     newMessage.value.type = 1
     await fetchMessages(user.id)  //获取当前要聊天用户的聊天记录
   }else {
+    console.log('更新！！！')
     messages.value = []
     newMessage.value.type = 0
     currentUser.value = null
@@ -220,6 +213,14 @@ const searchAllForm = async () =>{
     messageForm.value = res.data
   }
 }
+//通过后端返回的usersInfo，使用computed方法动态获取当前消息对话的avatar
+const getUserAvatarById = computed(()=>{
+  const avatarMap = {}
+  usersInfo.value.forEach(user => {
+    avatarMap[user.id] = user.avatar
+  })
+  return (userId) =>avatarMap[userId] || ''
+})
 
 const connectWebSocket = async (userId) =>{
   await new Promise((resolve) =>{
@@ -243,6 +244,20 @@ const sendWebSocketMessage = async (message) =>{
 const handleMessage = async (message) => {
   const parsedMessage = JSON.parse(message)
   console.log('收到消息：',parsedMessage)
+
+  if (parsedMessage.receiveUser===null){
+    broadCastLastMessage.value = parsedMessage.content
+  }
+
+  // const contentSplit = parsedMessage.content.split(',')
+  // const userId = Number(contentSplit[0])
+  // const loginCount = Number(contentSplit[1])
+  //
+  // socketMsg.value.userName = usersInfo.value.find(s=>s.id===userId).userName
+  // socketMsg.value.loginCount = loginCount
+  //
+  // console.log(socketMsg.value)
+
   //当前用户是否存在，
   if (currentUser.value) {
     await fetchMessages(currentUser.value.id)
@@ -256,7 +271,7 @@ const handleMessage = async (message) => {
 
 const findUserInfo = async () => {
   const res = await findUserAndAvatar()
-  console.log('@@@@@@4444',res)
+  usersInfo.value = res.data
 }
 
 onMounted(()=>{
@@ -437,6 +452,16 @@ defaultType()
   background-color: #01c201;
   border-radius: 50%;
 }
+.offline-dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  background-color: red;
+  border-radius: 50%;
+}
 .message-badge .el-badge__content {
   position: absolute;
   bottom: 5px; /* Adjust to your desired position */
@@ -444,5 +469,9 @@ defaultType()
   background-color: #f56c6c; /* Red background for visibility */
   color: white; /* White text color */
 }
-
+.joinInfo{
+  text-align: center;
+  color: gray;
+  font-size: small;
+}
 </style>
