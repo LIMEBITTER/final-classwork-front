@@ -70,12 +70,12 @@
             <el-form-item label="图片：" prop="file">
               <el-upload
                   v-model:file-list="files"
-                  action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
                   list-type="picture-card"
                   :on-preview="handlePictureCardPreview"
                   :on-remove="handleRemove"
                   :auto-upload="false"
                   :on-change="handleChange"
+                  ref="uploadImgRef"
 
               >
                 <el-icon><Plus /></el-icon>
@@ -114,6 +114,8 @@ import useSystemStore from "@/stores/system";
 import pinia from "@/stores/store";
 import {getRandomOrderId, saveOrder} from "@/api/business";
 import { ElMessage } from 'element-plus'
+import settings from '@/utils/settings'
+import { uploadImageBatch } from '@/api/file'
 
 const systemStore = useSystemStore(pinia)
 
@@ -123,6 +125,7 @@ const username = systemStore.userInfo.userName
 const dialogImageUrl = ref('')
 const dialogVisible = ref(false)
 const orderFormRef = ref()
+const uploadImgRef = ref(null)
 
 const orderForm = reactive({
   title:"",
@@ -145,24 +148,44 @@ const rules = reactive({
   complaint:[
     {required:true,message:"请描述问题",trigger:"blur"}
   ],
-  file:[
-    {required:true,message:"请描述问题",trigger:"blur"}
-  ],
+
 })
 
+// const customUpload = async (options) => {
+//   const {file} = options
+//   console.log('@@@file',file)
+//   console.log('@@@options',options)
+//
+//   const formData = new FormData()
+//   formData.append('files',files.value)
+//   await uploadImageBatch(formData)
+//
+// }
+
+const uploadBatchImage = async () =>{
+  let formData = new FormData()
+  files.value.forEach(file=>{
+    console.log('@file',file)
+    formData.append("files",file.raw)
+  })
+  await uploadImageBatch(formData,orderForm.order_id)
+
+}
+
 const onSubmit = async () =>{
+
+
 
   //表单校验
   await orderFormRef.value?.validate().catch((err)=>{
     throw err
   })
 
-  console.log('此时的表单',orderForm)
+  // await uploadImgRef.value.submit()
 
+  await uploadBatchImage()
   //提交表单
-  const res = await saveOrder(orderForm)
-
-  console.log(res)
+  await saveOrder(orderForm)
 
 }
 

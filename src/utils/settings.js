@@ -1,6 +1,7 @@
 export default {
   url_prefix: 'http://localhost:90/api',
   socket_url:'ws://localhost:90/api/imServer/',
-  socket_url_test:'ws://localhost:90/api/webSocket/'
+  socket_url_test:'ws://localhost:90/api/webSocket/',
+  upload_url:'http://localhost:90/api/file/upload'
 
 }

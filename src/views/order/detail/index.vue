@@ -71,6 +71,9 @@
         <el-row>
           <el-col>
             <el-form-item label="图片：">
+              <div v-for="image in orderImgs" :key="image.id">
+                <img style="width: 100px;margin-right: 10px" :src="image.url">
+              </div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -191,6 +194,7 @@ import DigAllocOrder from '@/views/order/detail/form/DigAllocOrder.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import OrderComments from '@/views/comment/order-comments.vue'
+import { getOrderImages } from '@/api/file'
 
 const digAllocOrder = ref()
 const historyData = ref([])
@@ -213,6 +217,8 @@ const auditData = ref({
   remark:''
 })
 const isShow = ref(false)
+
+const orderImgs = ref([])
 
 
 //todo 步骤条控制
@@ -333,9 +339,20 @@ const endOrder = async (orderId) =>{
 
 }
 
+//获取当前工单上传的图片
+const getOrderImgs = async () =>{
+  const res = await getOrderImages(orderId.value)
+
+  orderImgs.value = res.data
+
+  console.log(res)
+}
+
 getOneOrder()
 
 load()
+
+getOrderImgs()
 
 </script>
 
