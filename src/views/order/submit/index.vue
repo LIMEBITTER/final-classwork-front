@@ -67,17 +67,19 @@
 
         <el-row>
           <el-col>
-            <el-form-item label="图片：">
-<!--              <el-upload-->
-<!--                  v-model:file-list="fileList"-->
-<!--                  action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"-->
-<!--                  list-type="picture-card"-->
-<!--                  :on-preview="handlePictureCardPreview"-->
-<!--                  :on-remove="handleRemove"-->
-<!--                  :auto-upload="false"-->
-<!--              >-->
-<!--                <el-icon><Plus /></el-icon>-->
-<!--              </el-upload>-->
+            <el-form-item label="图片：" prop="file">
+              <el-upload
+                  v-model:file-list="files"
+                  action="https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15"
+                  list-type="picture-card"
+                  :on-preview="handlePictureCardPreview"
+                  :on-remove="handleRemove"
+                  :auto-upload="false"
+                  :on-change="handleChange"
+
+              >
+                <el-icon><Plus /></el-icon>
+              </el-upload>
             </el-form-item>
           </el-col>
 
@@ -96,6 +98,10 @@
 
     </el-form>
 
+    <el-dialog v-model="dialogVisible">
+      <img w-full :src="dialogImageUrl" alt="预览图片"/>
+    </el-dialog>
+
 
 
 
@@ -107,12 +113,15 @@ import {reactive, ref} from 'vue'
 import useSystemStore from "@/stores/system";
 import pinia from "@/stores/store";
 import {getRandomOrderId, saveOrder} from "@/api/business";
+import { ElMessage } from 'element-plus'
 
 const systemStore = useSystemStore(pinia)
 
 const creator_id = systemStore.userInfo.id
 const username = systemStore.userInfo.userName
 
+const dialogImageUrl = ref('')
+const dialogVisible = ref(false)
 const orderFormRef = ref()
 
 const orderForm = reactive({
@@ -126,13 +135,19 @@ const orderForm = reactive({
 
 })
 
+const files = ref([])
+const fileSet = ref(new Set())
+
 const rules = reactive({
   title:[
     {required:true,message:"请输入标题",trigger:"blur"}
   ],
   complaint:[
     {required:true,message:"请描述问题",trigger:"blur"}
-  ]
+  ],
+  file:[
+    {required:true,message:"请描述问题",trigger:"blur"}
+  ],
 })
 
 const onSubmit = async () =>{
@@ -155,6 +170,37 @@ const getRandomId = async () =>{
   const res = await getRandomOrderId()
   orderForm.order_id = res.data
 }
+
+const handlePictureCardPreview = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url
+    dialogVisible.value = true
+}
+
+const handleRemove = (file,fileList) => {
+  fileSet.value.delete(file.name)
+  files.value = fileList
+}
+const handleChange = (file,fileList) => {
+  //文件是否重复
+  if (fileSet.value.has(file.name)){
+    ElMessage.error('不能上传重复图片!')
+    files.value.pop()
+    return
+  }
+  console.log('@@@',file)
+  //是否为图片
+  if (!file.raw.type.startsWith('image/')){
+    ElMessage.error('只能提交图片类型!')
+    files.value.pop()
+    return
+  }
+
+  fileSet.value.add(file.name)
+
+  files.value = fileList
+}
+
+
 
 getRandomId()
 </script>
